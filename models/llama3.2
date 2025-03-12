@@ -1,0 +1,10 @@
+FROM llama2
+
+# Use specific parameters for the model
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_ctx 4096
+
+# Add a system prompt that will be used by default
+SYSTEM You are a helpful AI assistant powered by Llama 3. You provide accurate, helpful, and safe responses. 

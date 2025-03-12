@@ -1,0 +1,104 @@
+version: "3.8"
+
+services:
+  ollama:
+    profiles:
+      - llama2
+      - codellama
+      - mistral
+    volumes:
+      - ./models:/models # For custom model definitions
+
+  ollama-llama2:
+    image: ollama/ollama:latest
+    profiles: ["llama2"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_llama2_data:/root/.ollama
+      - ./models:/models
+    command: sh -c "ollama serve & sleep 10 && ollama pull llama2 && tail -f /dev/null"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ollama-codellama:
+    image: ollama/ollama:latest
+    profiles: ["codellama"]
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_codellama_data:/root/.ollama
+      - ./models:/models
+    command: sh -c "ollama serve & sleep 10 && ollama pull codellama && tail -f /dev/null"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ollama-mistral:
+    image: ollama/ollama:latest
+    profiles: ["mistral"]
+    ports:
+      - "11436:11434"
+    volumes:
+      - ollama_mistral_data:/root/.ollama
+      - ./models:/models
+    command: sh -c "ollama serve & sleep 10 && ollama pull mistral && tail -f /dev/null"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    environment:
+      - ENABLE_SWAGGER=true
+      - ENABLE_METRICS=true
+    volumes:
+      - ./models:/app/models
+    profiles:
+      - llama2
+      - codellama
+      - mistral
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+volumes:
+  ollama_llama2_data:
+  ollama_codellama_data:
+  ollama_mistral_data:
+  prometheus_data:
+  grafana_data:

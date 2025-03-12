@@ -18,7 +18,7 @@ export const errorHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Response | void => {
   console.error(`Error: ${err.message}`);
   console.error(err.stack);
 

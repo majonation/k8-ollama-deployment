@@ -11,6 +11,10 @@ This project deploys Llama models using Ollama on Kubernetes infrastructure prov
 - `src/` - Source code
   - `api/` - TypeScript REST API service
 - `docker-compose.yml` - Local development configuration
+- `docker-compose.override.yml` - Additional configurations for local development
+- `models/` - Custom model definitions
+- `monitoring/` - Monitoring configurations
+- `model-manager.sh` - Script for managing models and local development
 
 ## Features
 
@@ -21,6 +25,9 @@ This project deploys Llama models using Ollama on Kubernetes infrastructure prov
 - Ingress for load balancing
 - Infrastructure as Code with Terraform
 - Local development environment with Docker Compose
+- Support for multiple LLM models (Llama2, CodeLlama, Mistral, custom models)
+- Monitoring with Prometheus and Grafana
+- Swagger/OpenAPI documentation
 
 ## Local Development
 
@@ -29,62 +36,99 @@ This project deploys Llama models using Ollama on Kubernetes infrastructure prov
 - Docker and Docker Compose
 - Node.js >= 18 (optional, for local development without Docker)
 
-### Running Locally with Docker Compose
+### Quick Start
 
-1. Clone the repository:
+The easiest way to get started is to use the model management script:
 
-   ```bash
-   git clone <repository-url>
-   cd <repository-name>
-   ```
+```bash
+# List available models
+./model-manager.sh list
 
-2. Start the services:
+# Start with Llama2 model (lightweight)
+./model-manager.sh start llama2
 
-   ```bash
-   docker-compose up -d
-   ```
+# Start with CodeLlama model
+./model-manager.sh start codellama
 
-   This will:
+# Start with Mistral model
+./model-manager.sh start mistral
 
-   - Start Ollama service and automatically download the Llama 2 model
-   - Start the API service in development mode with hot-reloading
+# Start with Llama 3.2 model
+./model-manager.sh start llama3.2
+```
 
-3. Check the services:
+### Custom Models
 
-   ```bash
-   # Check if services are running
-   docker-compose ps
+You can create and manage custom models easily:
 
-   # View logs
-   docker-compose logs -f
-   ```
+```bash
+# Create a new model interactively
+./model-manager.sh create
 
-4. Access the API:
+# Import a model definition
+./model-manager.sh import ./path/to/model-definition
 
-   - API endpoint: http://localhost:3000/api/v1/llm
-   - Health check: http://localhost:3000/health
-   - Swagger UI: http://localhost:3000/api-docs
+# Use a custom model
+./model-manager.sh start my-custom-model
+```
 
-5. Test the API:
+### Running with Docker Compose Manually
 
-   ```bash
-   # Example: Generate text
-   curl -X POST http://localhost:3000/api/v1/llm/completions \
-     -H "Content-Type: application/json" \
-     -d '{"prompt": "Tell me about AI", "temperature": 0.7}'
-   ```
+If you prefer to use Docker Compose directly:
 
-6. Stop the services:
-   ```bash
-   docker-compose down
-   ```
+```bash
+# Start the basic setup
+docker-compose up -d
+
+# Start with specific model profile
+docker-compose --profile llama2 up -d
+docker-compose --profile codellama up -d
+docker-compose --profile mistral up -d
+
+# Start monitoring tools
+docker-compose --profile monitoring up -d
+```
+
+### Monitoring
+
+The project includes Prometheus and Grafana for monitoring:
+
+```bash
+# Start monitoring dashboard
+./model-manager.sh monitor
+```
+
+Then access:
+
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3001 (admin/admin)
+
+### API Documentation
+
+The API includes Swagger documentation:
+
+- Swagger UI: http://localhost:3000/api-docs
+
+### Testing the API
+
+```bash
+# Example: Generate text
+curl -X POST http://localhost:3000/api/v1/llm/completions \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Tell me about AI", "temperature": 0.7}'
+
+# Example: Generate JSON
+curl -X POST http://localhost:3000/api/v1/llm/json \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Generate a JSON object with information about 3 planets", "temperature": 0.2}'
+```
 
 ### Development Workflow
 
 1. The API service runs in development mode with hot-reloading
 2. Any changes to the TypeScript code will automatically restart the service
 3. Logs are available via `docker-compose logs -f api`
-4. The Ollama service persists models in a Docker volume
+4. The Ollama service persists models in Docker volumes
 
 ## Cloud Deployment
 
@@ -127,6 +171,7 @@ The system consists of:
    - Provides a clean interface for clients
 3. Kubernetes Ingress for load balancing (cloud deployment)
 4. Infrastructure provisioned via Terraform (cloud deployment)
+5. Monitoring with Prometheus and Grafana (optional)
 
 ## API Documentation
 
@@ -141,12 +186,15 @@ See [API Documentation](src/api/README.md) for detailed endpoint information.
 - `PORT` - API service port (default: 3000)
 - `NODE_ENV` - Environment (development/production)
 - `LOG_LEVEL` - Logging level (debug/info/warn/error)
+- `ENABLE_SWAGGER` - Enable Swagger UI (default: true in development)
+- `ENABLE_METRICS` - Enable Prometheus metrics (default: true in development)
 
 ### Model Configuration
 
 - Local development uses the smaller Llama 2 model for faster testing
 - Cloud deployment uses Llama 3 32B for production use
 - Models are automatically downloaded on first use
+- Custom models can be defined in the `models/` directory
 
 ## Troubleshooting
 
@@ -165,7 +213,18 @@ See [API Documentation](src/api/README.md) for detailed endpoint information.
    ```
 
 3. To reset the environment:
+
    ```bash
    # Remove containers and volumes
    docker-compose down -v
+   ```
+
+4. If you encounter issues with a specific model:
+
+   ```bash
+   # List running containers
+   docker-compose ps
+
+   # Check logs for a specific service
+   docker-compose logs ollama-llama2
    ```
